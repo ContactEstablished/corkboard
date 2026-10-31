@@ -103,6 +103,16 @@ Rules enforced in code and covered by tests:
 - **Idempotent writes.** Repeating "add yogurt" skips items already on the list; completing the same chore occurrence twice awards nothing.
 - **Privacy.** Only the transcript is handled; raw audio is never stored. `BrowserSpeechCapture` stops its probe stream immediately.
 
+## Phase 3 voice additions
+
+- **Vocabulary** (`RuleBasedIntentInterpreter`): grocery add/remove, calendar add/move/cancel, message send/delete, notes, reminders, chore complete/assign/remove, navigation, and dictation. Anything unrecognized is `unknown` and is explained or clarified; nothing is guessed.
+- **Clarification.** `ValidationResult` has a third failure shape, `reason: 'clarify'`, carrying a `Clarification { question, options[] }`. Each option's `patch` ({ intent?, entities? }) is merged into the command and validated again (`voice.answerClarification`), so questions can chain (intent → time). Used for: ambiguous intent, missing time, missing recipient, missing assignee, and several matching events/chores/messages.
+- **Navigation** is a `ProposedAction` with `autoRun: true` (non-mutating, so no review step). The voice store executes it through `ServiceContainer.navigation` (`NavigationService`); `app/navigator.ts` implements it with the router, the member filter, the calendar store and the photo album filter.
+- **Dictation.** Opening the mic with `context.field` ('event.title' | 'chore.title' | 'photo.caption') turns the transcript into a `dictation` action. After confirmation the text goes to the `onDictation` callback supplied by the caller (the editor writes it into its draft; the photo viewer saves the caption). It never reaches the data executor.
+- **Context** now carries `entityId` (an open event/photo) and `field`; the interpreter resolves "it" from `entityId`, and defaults a calendar date from `selectedDate`.
+- **Destructive voice actions** (cancel event, delete chore/message, remove groceries) are `destructive: true`: a danger button and a "can't be undone" notice, and nothing happens before the tap.
+- **Spoken replies** go through `SpeechFeedback` only when `preferences.speakReplies` is on.
+
 ## Mock speech
 
 `MockSpeechRecognizer` streams a scripted phrase word by word (interim → final) chosen by `context.feature` (rotating through the scenarios that fit). It also implements `ScriptableRecognizer` so dev builds can force a scenario from the modal's DEV strip. That strip is compiled in only when `import.meta.env.DEV`, and it is chips, not a keyboard field.

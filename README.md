@@ -2,7 +2,7 @@
 
 A touch-first, voice-first family dashboard for a wall-mounted ~12" landscape Android tablet near the front door. Vue 3 + TypeScript + Vite, themed with the futuristic **CyberHUD** design system.
 
-**Status: Phases 1 and 2 complete** (shell, home, voice modal, calendar views, grocery/chores/messages/photos modals, member dashboards). Everything runs on mock data; there is no backend. See [ROADMAP.md](ROADMAP.md) and [TASKS.md](TASKS.md).
+**Status: Phases 1–3 complete** (shell, home, calendar, feature modals, member dashboards, and the full mock voice vocabulary). Everything runs on mock data; there is no backend. See [ROADMAP.md](ROADMAP.md) and [TASKS.md](TASKS.md).
 
 ## Setup
 
@@ -45,6 +45,10 @@ Demo data is generated relative to "today" and persisted per day in `localStorag
 - Tap a panel's **chevron** (or a nav item) to open the full **Grocery, Chores, Messages or Photos** modal; **Calendar** has Day / Week / Month in the header. Add, edit and delete are all by touch (steppers and chips, since there is no keyboard); every delete asks for a second tap.
 - Pick a member to see their **dashboard** (profile, level, schedule, week, chores, upcoming, messages, photos).
 - Voice review for messages lets you change the recipients by touch before sending.
+- **Things to say** (with the mock recognizer, use the DEV chips in the voice window to pick one): “Add yogurt, rice and oranges to the grocery list”, “Remove bananas from the list”, “Assign Ethan to take out the trash every Wednesday for twenty points”, “Mark Ethan’s dishes as complete”, “Add a dentist appointment for Jaime next Tuesday at two”, “Move soccer practice to 5 PM”, “Cancel the dentist appointment”, “Send everyone a message that dinner is at six tonight”, “Remind Liam to bring his soccer cleats tomorrow”, “Delete the message about pizza”, “Show me next week”, “Show me Lumen’s activities this weekend”, “Open Liam’s soccer photos”.
+- Unclear requests ask a question you answer by touch (“Add practice tomorrow” → event, chore, reminder or message? → what time?).
+- The mic beside an event title, chore name or photo caption dictates into that field (you confirm the text first). The mic on an event’s detail view means “it” is that event.
+- **Speak replies** (voice window) reads results and questions aloud. It is off by default and remembered per device.
 
 ## Android kiosk deployment notes
 

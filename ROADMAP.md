@@ -27,7 +27,13 @@ Original scope:
 - Settings screens from the reference (voice, theme, display, kiosk)
 - Replace `FeaturePlaceholder` routes; open previews' expand chevrons as near-full-screen modals
 
-## Phase 3: Voice interaction ⬜
+## Phase 3: Voice interaction ✅
+
+Delivered: all ten example commands from the spec; new intents for chore assignment/removal, moving and cancelling events, deleting messages, and "show me…" navigation (calendar ranges, a member's schedule, a member's photo album, opening sections); a tappable clarification step (which intent, what time, who, which event/chore/message); dictation of event titles, chore names and photo captions into forms; selected date and entity id carried in the voice context ("move it to 5 PM" from an event's detail view); opt-in spoken replies; a `NavigationService` seam so navigation is not hard-wired to the router.
+
+Still rule-based: the interpreter is a deterministic stand-in. A real NLU/LLM or native speech bridge only needs to implement `IntentInterpreter` / `SpeechRecognizer`.
+
+Original scope:
 
 - Full command vocabulary (chore assignment with recurrence/points, remove/edit, "show me…", photos navigation, reminders with times)
 - Tappable clarification flow ("Let's Clarify" reference)

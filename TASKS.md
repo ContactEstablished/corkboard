@@ -35,15 +35,15 @@
 - [ ] Settings screens (deferred; still a placeholder)
 - [x] Expand chevrons open near-full-screen modals
 
-## Phase 3: Voice
+## Phase 3: Voice ✅
 
-- [ ] Chore assignment ("every Wednesday for twenty points"), edit, remove intents
-- [ ] Voice dictation for free-text titles (events, chores, captions); touch pickers cover titles until then
-- [ ] Voice edit/delete of calendar events, messages and photo captions
-- [ ] "Show me…" navigation intents; photos intents
-- [ ] Tappable clarification options
-- [ ] Selected date/interval/entity in `VoiceInteractionContext` from every modal
-- [ ] Spoken feedback setting
+- [x] Chore assignment ("every Wednesday for twenty points") and removal intents
+- [x] Voice dictation for free-text titles (events, chores, captions), reviewed before use
+- [x] Voice move/cancel of calendar events, delete of messages, photo captions by dictation
+- [x] "Show me…" navigation intents; photos intents
+- [x] Tappable clarification options
+- [x] Selected date and entity id in `VoiceInteractionContext` (event detail, photo viewer, calendar)
+- [x] Spoken feedback setting (opt-in toggle in the voice window)
 
 ## Phase 4–5
 

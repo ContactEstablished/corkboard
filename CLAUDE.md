@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-The repo is named `corkboard`; the app is **Family Hub**: a touch-first, voice-first family dashboard for a wall-mounted ~12" landscape Android tablet (2K-class, 16:10 or 16:9). **Phases 1 and 2 are complete** (see `ROADMAP.md` / `TASKS.md`): Vue 3 + TS-strict + Vite + Pinia + Vue Router + Vuetify 3, all on mock data, no backend.
+The repo is named `corkboard`; the app is **Family Hub**: a touch-first, voice-first family dashboard for a wall-mounted ~12" landscape Android tablet (2K-class, 16:10 or 16:9). **Phases 1–3 are complete** (see `ROADMAP.md` / `TASKS.md`): Vue 3 + TS-strict + Vite + Pinia + Vue Router + Vuetify 3, all on mock data, no backend.
 
 - `FirstPrompt.txt` is the authoritative product spec. Read the relevant section before building a feature.
 - `ARCHITECTURE.md` explains layers, stores and the voice pipeline. `README.md` has setup and URL switches.
@@ -32,7 +32,7 @@ npx playwright test -g "chore"              # single e2e test by name
 
 ## Scope discipline
 
-Work in phases (spec §18); the next one is **Phase 3** (full voice vocabulary, clarification flow, voice editing/dictation). Do not build production backend, LLM or speech services. Interfaces and mocks only.
+Work in phases (spec §18); the next one is **Phase 4** (polish, real-hardware validation, empty/offline/sync states, coverage). Do not build production backend, LLM or speech services. Interfaces and mocks only.
 
 Keep `ARCHITECTURE.md`, `ROADMAP.md`, `TASKS.md` and `README.md` current as work progresses. At the end of each phase, record what is implemented, what is still mocked, and the recommended next tasks.
 
@@ -56,6 +56,8 @@ These are the cross-cutting constraints from the spec that every feature must re
 - **Design the data model for parental permissions and privacy later** (Settings shows Administrator / Standard / Kids Mode / Limited Purchases). Keep message previews on the front-door home screen non-sensitive.
 
 Routing: `/groceries`, `/tasks`, `/messages` and `/photos` all render `features/family/HomeHost.vue`, which keeps Home mounted and opens a near-full-screen `FeatureModal` over it (`route.meta.modal`). The modals sit *below* the header (`--hud-header-h`), so the global mic and avatars stay usable; nested dialogs and the voice modal use `layer="top"`. `/calendar` is a normal screen. Selecting a member turns Home into `MemberDashboard`. Recurring events and chores share `features/calendar/recurrence.ts`.
+
+Voice additions: the pipeline has a `clarifying` state (a validator can return `reason: 'clarify'` with tappable options whose `patch` is merged into the command and re-validated); navigation ("show me…") is an `autoRun` action executed by the voice store through `NavigationService` (`app/navigator.ts` is the router-backed implementation, replaced in `main.ts`); dictation (`context.field`) makes the whole utterance a form value that is handed to an `onDictation` callback after review, never written to data. Spoken replies are gated by `usePreferencesStore().speakReplies`. The recognizer/interpreter/validator are deliberately swappable: do not special-case phrasing in components.
 
 Source layout under `src/`: `app/`, `components/{hud,voice,calendar}/`, `features/*`, `stores/`, `services/` (interfaces in `interfaces.ts`, the only wiring in `container.ts`), `models/`, `themes/`, `data/`. Stores reach services through `getServices()`, never by importing a mock directly. Component SCSS gets `themes/_mixins.scss` auto-injected.
 
