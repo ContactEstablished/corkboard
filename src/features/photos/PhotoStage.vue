@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ChevronLeft, ChevronRight, Heart, Pause, Play } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, Heart, Mic, Pause, Play } from 'lucide-vue-next'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import MemberAvatar from '@/components/hud/MemberAvatar.vue'
 import type { Photo } from '@/models'
 import { useFamilyStore } from '@/stores/family'
+import { useVoiceLauncher } from '@/features/voice/useVoiceLauncher'
 import { usePhotoStore } from '@/stores/photos'
 
 const props = withDefaults(defineProps<{ photos: Photo[]; autoplay?: boolean; intervalMs?: number }>(), { intervalMs: 5000 })
@@ -11,6 +12,7 @@ const index = defineModel<number>('index', { required: true })
 
 const family = useFamilyStore()
 const store = usePhotoStore()
+const { launch } = useVoiceLauncher()
 
 const photo = computed(() => props.photos[index.value] ?? null)
 const people = computed(() => (photo.value?.memberIds ?? []).map((id) => family.byId.get(id)).filter((m) => !!m))
@@ -33,6 +35,18 @@ watch(
   { immediate: true },
 )
 onBeforeUnmount(() => timer && clearInterval(timer))
+
+/** Dictate a caption for this photo. Pauses the slideshow so the photo can't change underneath. */
+function sayCaption() {
+  const target = photo.value
+  if (!target) return
+  playing.value = false
+  void launch(
+    { feature: 'photos', activeModal: 'photo-viewer', operation: 'edit', entityId: target.id, field: 'photo.caption' },
+    'local-mic',
+    { onDictation: (t) => store.setCaption(target.id, t) },
+  )
+}
 
 // Keep the index valid if the list shrinks (e.g. the member filter changes).
 watch(
@@ -58,6 +72,7 @@ watch(
       <div class="stage__people" aria-label="People in this photo">
         <MemberAvatar v-for="m in people" :key="m!.id" :member="m!" size="2rem" />
       </div>
+      <button type="button" class="stage__btn" aria-label="Say a caption" data-testid="say-caption" @click="sayCaption"><Mic /></button>
       <button type="button" class="stage__btn" :aria-label="playing ? 'Pause slideshow' : 'Play slideshow'" @click="playing = !playing">
         <component :is="playing ? Pause : Play" />
       </button>

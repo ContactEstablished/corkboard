@@ -4,6 +4,9 @@ import { computed, reactive, watch } from 'vue'
 import ConfirmButton from '@/components/hud/ConfirmButton.vue'
 import HudButton from '@/components/hud/HudButton.vue'
 import HudModal from '@/components/hud/HudModal.vue'
+import MicButton from '@/components/voice/MicButton.vue'
+import { useVoiceLauncher } from '@/features/voice/useVoiceLauncher'
+import { useVoiceStore } from '@/stores/voice'
 import MemberAvatar from '@/components/hud/MemberAvatar.vue'
 import { describeRecurrence } from '@/features/calendar/recurrence'
 import type { Chore, ChoreIcon, ID, RecurrenceRule } from '@/models'
@@ -17,6 +20,17 @@ const props = defineProps<{ open: boolean; chore?: Chore | null }>()
 const emit = defineEmits<{ close: [] }>()
 
 const chores = useChoreStore()
+const voice = useVoiceStore()
+const { launch } = useVoiceLauncher()
+
+/** Dictate a custom chore name (confirmed before it is used). */
+const sayName = () =>
+  launch({ feature: 'chores', activeModal: 'chore-editor', operation: 'edit', field: 'chore.title' }, 'local-mic', {
+    onDictation: (t) => {
+      draft.title = t
+      draft.detail = ''
+    },
+  })
 const family = useFamilyStore()
 const clock = useClockStore()
 
@@ -97,7 +111,10 @@ async function remove() {
   <HudModal :open="open" :title="chore ? 'Edit chore' : 'New chore'" size="lg" layer="top" :close-on-backdrop="false" @close="emit('close')">
     <div class="ce" data-testid="chore-editor">
       <section class="ce__sect">
-        <h3>Chore</h3>
+        <div class="say"><h3>Chore</h3>
+          <MicButton size="sm" :state="voice.micVisual" label="Say a chore name" data-testid="say-chore" @press="sayName" />
+          <span class="say__label">Say a name</span>
+        </div>
         <div class="ce__chips" role="group" aria-label="Chore ideas">
           <button
             v-for="t in CHORE_TEMPLATES"
@@ -184,6 +201,16 @@ async function remove() {
     text-transform: uppercase;
     color: var(--hud-text-dim);
   }
+}
+
+.say {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.say__label {
+  font-size: 0.85rem;
+  color: var(--hud-text-dim);
 }
 .ce__row {
   display: flex;

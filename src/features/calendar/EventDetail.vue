@@ -4,6 +4,9 @@ import { computed } from 'vue'
 import ConfirmButton from '@/components/hud/ConfirmButton.vue'
 import HudButton from '@/components/hud/HudButton.vue'
 import HudModal from '@/components/hud/HudModal.vue'
+import MicButton from '@/components/voice/MicButton.vue'
+import { useVoiceLauncher } from '@/features/voice/useVoiceLauncher'
+import { useVoiceStore } from '@/stores/voice'
 import MemberAvatar from '@/components/hud/MemberAvatar.vue'
 import type { CalendarEvent } from '@/models'
 import { useCalendarStore } from '@/stores/calendar'
@@ -16,6 +19,16 @@ const props = defineProps<{ event: CalendarEvent | null }>()
 const emit = defineEmits<{ close: []; edit: [event: CalendarEvent] }>()
 
 const calendar = useCalendarStore()
+const voice = useVoiceStore()
+const { launch } = useVoiceLauncher()
+
+/** "Move it to 5 PM" / "Cancel it": the event's id travels in the voice context, so "it" is unambiguous. */
+function speak() {
+  if (!props.event) return
+  const entityId = props.event.id
+  emit('close')
+  void launch({ feature: 'calendar', activeModal: 'event-detail', operation: 'edit', entityId }, 'local-mic')
+}
 const family = useFamilyStore()
 
 const e = computed(() => props.event)
@@ -56,6 +69,7 @@ async function remove() {
           @confirm="remove"
         />
         <span class="ed__spacer" />
+        <MicButton size="sm" :state="voice.micVisual" label="Change or cancel by voice" data-testid="event-voice" @press="speak" />
         <HudButton variant="primary" data-testid="event-edit" @click="emit('edit', event)">
           <template #icon><Pencil /></template>
           Edit

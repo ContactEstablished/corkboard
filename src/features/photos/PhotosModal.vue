@@ -4,7 +4,7 @@ import { computed, ref, watch } from 'vue'
 import FeatureModal from '@/components/hud/FeatureModal.vue'
 import HudModal from '@/components/hud/HudModal.vue'
 import HudSegmented from '@/components/hud/HudSegmented.vue'
-import type { Photo, PhotoCategory } from '@/models'
+import type { Photo, PhotoFilter } from '@/models'
 import { useClockStore } from '@/stores/clock'
 import { useFamilyStore } from '@/stores/family'
 import { PHOTO_CATEGORIES, usePhotoStore } from '@/stores/photos'
@@ -17,8 +17,8 @@ const photos = usePhotoStore()
 const family = useFamilyStore()
 const clock = useClockStore()
 
-type Filter = 'all' | 'favorites' | 'recent' | PhotoCategory
-const filter = ref<Filter>('all')
+type Filter = PhotoFilter
+const filter = computed({ get: () => photos.filter, set: (v: Filter) => (photos.filter = v) })
 const mode = ref<'grid' | 'slideshow'>('grid')
 const viewerIndex = ref<number | null>(null)
 const slideIndex = ref(0)

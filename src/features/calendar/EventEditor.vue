@@ -3,6 +3,9 @@ import { ChevronLeft, ChevronRight, Minus, Plus } from 'lucide-vue-next'
 import { computed, reactive, watch } from 'vue'
 import HudButton from '@/components/hud/HudButton.vue'
 import HudModal from '@/components/hud/HudModal.vue'
+import MicButton from '@/components/voice/MicButton.vue'
+import { useVoiceLauncher } from '@/features/voice/useVoiceLauncher'
+import { useVoiceStore } from '@/stores/voice'
 import MemberAvatar from '@/components/hud/MemberAvatar.vue'
 import type { CalendarEvent, EventCategory, RecurrenceRule } from '@/models'
 import { useCalendarStore } from '@/stores/calendar'
@@ -15,6 +18,12 @@ const emit = defineEmits<{ close: [] }>()
 
 const calendar = useCalendarStore()
 const family = useFamilyStore()
+const voice = useVoiceStore()
+const { launch } = useVoiceLauncher()
+
+/** Dictate a free-text title; it lands in the form only after the user confirms it. */
+const sayTitle = () =>
+  launch({ feature: 'calendar', activeModal: 'event-editor', operation: 'edit', field: 'event.title' }, 'local-mic', { onDictation: (t) => (draft.title = t) })
 
 const TITLES = ['Appointment', 'Practice', 'Game', 'Lesson', 'Meeting', 'Birthday Party', 'Dinner', 'Playdate', 'Family Time', 'Dentist', 'Doctor', 'Homework']
 const CATEGORIES: { value: EventCategory; label: string }[] = [
@@ -138,7 +147,10 @@ async function save() {
   <HudModal :open="open" :title="isEdit ? 'Edit event' : 'New event'" size="lg" layer="top" :close-on-backdrop="false" @close="emit('close')">
     <div class="ee" data-testid="event-editor">
       <section class="ee__sect">
-        <h3>What</h3>
+        <div class="say"><h3>What</h3>
+          <MicButton size="sm" :state="voice.micVisual" label="Say a title" data-testid="say-title" @press="sayTitle" />
+          <span class="say__label">Say a title</span>
+        </div>
         <div class="ee__chips" role="group" aria-label="Event ideas">
           <button v-for="t in TITLES" :key="t" type="button" class="ee__chip" :class="{ 'ee__chip--on': draft.title === t }" :aria-pressed="draft.title === t" @click="draft.title = t">{{ t }}</button>
         </div>
@@ -243,6 +255,16 @@ async function save() {
       color: var(--hud-text-faint);
     }
   }
+}
+
+.say {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.say__label {
+  font-size: 0.85rem;
+  color: var(--hud-text-dim);
 }
 .ee__row {
   display: flex;

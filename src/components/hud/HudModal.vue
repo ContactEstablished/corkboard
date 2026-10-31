@@ -13,8 +13,8 @@ const props = withDefaults(
     closeOnBackdrop?: boolean
     /** Hide the header close button (e.g. while a commit is in flight). */
     closable?: boolean
-    /** `top` stacks above feature modals (the voice modal). */
-    layer?: 'base' | 'top'
+    /** `top` stacks above feature modals (editors, viewers); `voice` above everything. */
+    layer?: 'base' | 'top' | 'voice'
   }>(),
   { size: 'md', closeOnBackdrop: true, closable: true, layer: 'base' },
 )
@@ -89,6 +89,9 @@ function onKey(e: KeyboardEvent) {
   place-items: center;
   &--top {
     z-index: 200;
+  }
+  &--voice {
+    z-index: 300;
   }
   // Near-full-screen modals leave the header (global mic, avatars) uncovered.
   &--full {

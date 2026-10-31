@@ -110,6 +110,8 @@ const emptyText = computed(() => ({ todo: 'Everything is done. Nice work!', done
       </section>
 
       <aside class="cm__side">
+        <LocalMic label="Chores by voice" :context="{ feature: 'chores', activeModal: 'chores', operation: 'complete' }" />
+
         <section class="cm__card cm__goal" aria-label="Family goal">
           <header><h3>Family goal</h3><span>{{ clock.weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }} week</span></header>
           <p>Complete {{ chores.familyGoal.target }} chores this week</p>
@@ -148,7 +150,6 @@ const emptyText = computed(() => ({ todo: 'Everything is done. Nice work!', done
           </ul>
         </section>
 
-        <LocalMic label="Chores by voice" :context="{ feature: 'chores', activeModal: 'chores', operation: 'complete' }" />
       </aside>
     </div>
 
@@ -316,7 +317,7 @@ const emptyText = computed(() => ({ todo: 'Everything is done. Nice work!', done
   gap: 0.8rem;
   min-height: 0;
   overflow-y: auto;
-  padding: 0 0.2rem 0 0;
+  padding: 0.9rem 0.2rem 0 0;
 }
 .cm__card {
   align-self: stretch;

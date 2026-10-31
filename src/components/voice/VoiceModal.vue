@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, CircleHelp, Mic, RotateCcw, Square, TriangleAlert } from 'lucide-vue-next'
+import { Check, CircleHelp, Mic, RotateCcw, Square, TriangleAlert, Volume2, VolumeX } from 'lucide-vue-next'
 import { computed } from 'vue'
 import HudButton from '@/components/hud/HudButton.vue'
 import HudModal from '@/components/hud/HudModal.vue'
@@ -7,6 +7,7 @@ import { featureLabel, voiceHint, voiceTitle } from '@/features/voice/context'
 import { getServices } from '@/services/container'
 import { isScriptable } from '@/services/interfaces'
 import { useFamilyStore } from '@/stores/family'
+import { usePreferencesStore } from '@/stores/preferences'
 import { useVoiceStore } from '@/stores/voice'
 import ActionPreview from './ActionPreview.vue'
 import MicButton from './MicButton.vue'
@@ -15,6 +16,7 @@ import Waveform from './Waveform.vue'
 
 const voice = useVoiceStore()
 const family = useFamilyStore()
+const prefs = usePreferencesStore()
 
 const ctx = computed(() => voice.context)
 const title = computed(() => (ctx.value ? voiceTitle(ctx.value) : ''))
@@ -25,6 +27,7 @@ const STATUS: Record<string, string> = {
   'requesting-permission': 'Getting ready…',
   'listening': 'Listening…',
   'processing': 'Understanding your request…',
+  'clarifying': 'One quick question',
   'reviewing': "Here's what I found",
   'executing': 'Saving…',
   'success': 'All set!',
@@ -42,12 +45,15 @@ const devScenarios = computed(() => {
 </script>
 
 <template>
-  <HudModal :open="voice.isOpen" :title="title" size="md" layer="top" :close-on-backdrop="false" :closable="!busy" @close="voice.close()">
+  <HudModal :open="voice.isOpen" :title="title" size="md" layer="voice" :close-on-backdrop="false" :closable="!busy" @close="voice.close()">
     <template #header>
       <div class="vm__head">
         <h2 class="vm__title">{{ title }}</h2>
         <span class="vm__chip" data-testid="voice-context">From: {{ ctx ? featureLabel(ctx.feature) : '' }}</span>
         <span v-if="memberName" class="vm__chip vm__chip--member">For {{ memberName }}</span>
+        <button type="button" class="vm__chip vm__chip--toggle" :class="{ 'vm__chip--on': prefs.speakReplies }" :aria-pressed="prefs.speakReplies" data-testid="speak-toggle" @click="prefs.speakReplies = !prefs.speakReplies">
+          <component :is="prefs.speakReplies ? Volume2 : VolumeX" aria-hidden="true" />Speak replies
+        </button>
       </div>
     </template>
 
@@ -71,6 +77,20 @@ const devScenarios = computed(() => {
         :hint="hint"
         :live="listening"
       />
+
+      <!-- Clarifying: a question answered by touching an option -->
+      <template v-else-if="voice.state === 'clarifying' && voice.clarification">
+        <TranscriptDisplay :text="voice.transcript" />
+        <section class="vm__clarify" aria-label="Clarifying question" data-testid="clarify">
+          <h3 class="vm__question">{{ voice.clarification.question }}</h3>
+          <div class="vm__options" :class="{ 'vm__options--grid': voice.clarification.options.length > 5 }">
+            <button v-for="(o, i) in voice.clarification.options" :key="o.label + i" type="button" class="vm__option" data-testid="clarify-option" @click="voice.answerClarification(i)">
+              <b>{{ o.label }}</b>
+              <small v-if="o.detail">{{ o.detail }}</small>
+            </button>
+          </div>
+        </section>
+      </template>
 
       <!-- Review -->
       <template v-else-if="voice.state === 'reviewing' && voice.proposal">
@@ -96,6 +116,14 @@ const devScenarios = computed(() => {
           <HudButton variant="primary" @click="voice.stopListening()">
             <template #icon><Square /></template>
             Done talking
+          </HudButton>
+        </template>
+
+        <template v-else-if="voice.state === 'clarifying'">
+          <HudButton @click="voice.close()">Cancel</HudButton>
+          <HudButton @click="voice.retry()">
+            <template #icon><RotateCcw /></template>
+            Start over
           </HudButton>
         </template>
 
@@ -224,6 +252,72 @@ const devScenarios = computed(() => {
     height: 1rem;
   }
 }
+.vm__chip--toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2rem;
+  background: none;
+  cursor: pointer;
+  svg {
+    width: 0.95rem;
+    height: 0.95rem;
+  }
+}
+.vm__chip--on {
+  color: var(--hud-text);
+  border-color: var(--hud-primary);
+  background: color-mix(in srgb, var(--hud-primary) 16%, transparent);
+}
+.vm__clarify {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.vm__question {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--hud-warning);
+}
+.vm__options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-height: 16rem;
+  overflow-y: auto;
+  &--grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.vm__option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.1rem;
+  min-height: 3.4rem;
+  padding: 0.3rem 1rem;
+  border: 1px solid var(--hud-border-bright);
+  border-radius: 0.8rem;
+  background: color-mix(in srgb, var(--hud-surface) 70%, transparent);
+  color: var(--hud-text);
+  text-align: left;
+  cursor: pointer;
+  b {
+    font-size: 1.05rem;
+  }
+  small {
+    font-size: 0.8rem;
+    color: var(--hud-text-dim);
+  }
+  &:active {
+    background: color-mix(in srgb, var(--hud-primary) 22%, transparent);
+    border-color: var(--hud-primary);
+  }
+}
 .vm__actions {
   display: flex;
   gap: 0.7rem;
@@ -242,6 +336,8 @@ const devScenarios = computed(() => {
   gap: 0.4rem;
   padding-top: 0.7rem;
   border-top: 1px dashed var(--hud-border);
+  max-height: 7.2rem;
+  overflow-y: auto;
 }
 .vm__dev-tag {
   display: inline-flex;

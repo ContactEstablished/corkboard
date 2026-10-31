@@ -22,7 +22,7 @@ function toggleTo(id: string) {
 
 const memberFor = (id?: string) => (id ? (family.byId.get(id) ?? null) : null)
 const notice = computed(() => {
-  if (props.action.destructive) return { kind: 'danger', icon: Trash2, text: 'This will remove items. Nothing is deleted until you confirm.' }
+  if (props.action.destructive) return { kind: 'danger', icon: Trash2, text: 'Nothing is deleted until you confirm. This can’t be undone.' }
   if (props.action.outgoing) return { kind: 'info', icon: Send, text: 'Others will see this. Check it before sending.' }
   return null
 })
