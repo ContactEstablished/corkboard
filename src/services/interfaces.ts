@@ -10,6 +10,8 @@ import type {
   ActionKind,
   CalendarEvent,
   Chore,
+  Clarification,
+  NavTarget,
   ChoreCompletion,
   FamilyMember,
   ID,
@@ -139,6 +141,8 @@ export interface IntentInterpreter {
 export type ValidationResult =
   | { ok: true; action: ProposedAction }
   | { ok: false; reason: 'unclear' | 'invalid'; message: string; command: VoiceCommand }
+  /** The request is understood but needs one more answer; the UI shows tappable options. */
+  | { ok: false; reason: 'clarify'; message: string; command: VoiceCommand; clarification: Clarification }
 
 /** Turns a command into a reviewable action, or explains why it cannot. */
 export interface ActionValidator {
@@ -158,6 +162,11 @@ export interface SpeechFeedback {
   cancel(): void
 }
 
+/** Moves the app somewhere (route, member filter, calendar range, photo album). Implemented by the app shell. */
+export interface NavigationService {
+  go(target: NavTarget): Promise<void>
+}
+
 export interface ServiceContainer {
   family: FamilyRepository
   calendar: CalendarRepository
@@ -172,6 +181,7 @@ export interface ServiceContainer {
   validator: ActionValidator
   executor: CommandExecutor
   feedback: SpeechFeedback
+  navigation: NavigationService
   /** Injectable clock so tests and demos are deterministic. */
   now(): Date
 }

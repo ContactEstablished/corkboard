@@ -4,7 +4,7 @@
  */
 
 import { createSeedData } from '@/data/seed'
-import type { ServiceContainer, SpeechRecognizer, SpeechCapture } from './interfaces'
+import type { ServiceContainer, SpeechCapture, SpeechFeedback, SpeechRecognizer } from './interfaces'
 import { DefaultActionValidator } from './intent/DefaultActionValidator'
 import { RepositoryCommandExecutor } from './intent/RepositoryCommandExecutor'
 import { RuleBasedIntentInterpreter } from './intent/RuleBasedIntentInterpreter'
@@ -18,7 +18,7 @@ import {
   MockWeatherService,
 } from './mock/repositories'
 import { type Persistence, noPersistence } from './mock/persistence'
-import { BrowserSpeechCapture, BrowserSpeechRecognizer, NullSpeechFeedback } from './speech/BrowserSpeech'
+import { BrowserSpeechCapture, BrowserSpeechRecognizer, BrowserSpeechFeedback } from './speech/BrowserSpeech'
 import { MockSpeechCapture, MockSpeechRecognizer, type MockRecognizerOptions } from './speech/MockSpeechRecognizer'
 
 export type SpeechProvider = 'mock' | 'browser'
@@ -30,6 +30,7 @@ export interface MockServiceOptions {
   /** Override pieces (tests). */
   recognizer?: SpeechRecognizer
   capture?: SpeechCapture
+  feedback?: SpeechFeedback
   mockRecognizer?: MockRecognizerOptions
 }
 
@@ -63,9 +64,11 @@ export function createMockServices(opts: MockServiceOptions = {}): ServiceContai
     capture,
     recognizer,
     interpreter: new RuleBasedIntentInterpreter(),
-    validator: new DefaultActionValidator({ groceries, chores, now }),
+    validator: new DefaultActionValidator({ groceries, chores, calendar, messages, now }),
     executor: new RepositoryCommandExecutor({ groceries, calendar, chores, messages, now }),
-    feedback: new NullSpeechFeedback(),
+    feedback: opts.feedback ?? new BrowserSpeechFeedback(),
+    // The app shell replaces this with a router-backed implementation (see app/navigator.ts).
+    navigation: { go: async () => {} },
     now,
   }
 }

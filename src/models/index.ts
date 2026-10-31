@@ -217,7 +217,38 @@ export interface VoiceInteractionContext {
   activeModal?: string
   entityId?: ID
   operation?: VoiceOperation
+  /** Set when the mic dictates into a specific form field instead of issuing a command. */
+  field?: DictationField
   origin: VoiceOrigin
+}
+
+export type DictationField = 'event.title' | 'chore.title' | 'photo.caption'
+
+export type PhotoFilter = 'all' | 'favorites' | 'recent' | PhotoCategory
+
+/** Where a "show me…" / "open…" command should take the user. */
+export interface NavTarget {
+  route: '/' | '/calendar' | '/tasks' | '/groceries' | '/messages' | '/photos'
+  /** A member id selects them; `null` returns to the whole family; undefined leaves the filter alone. */
+  memberId?: ID | null
+  calendarView?: CalendarViewMode
+  date?: ISODate
+  photoFilter?: PhotoFilter
+  /** Human summary, e.g. "Calendar · next week · Lumen". */
+  label: string
+}
+
+/** A question the user answers by touching one of the options. */
+export interface Clarification {
+  question: string
+  options: ClarifyOption[]
+}
+
+export interface ClarifyOption {
+  label: string
+  detail?: string
+  /** Merged into the command before it is validated again. */
+  patch: { intent?: VoiceIntent; entities?: VoiceCommand['entities'] }
 }
 
 export type VoiceIntent =
@@ -225,13 +256,16 @@ export type VoiceIntent =
   | 'grocery.remove'
   | 'chore.assign'
   | 'chore.complete'
+  | 'chore.remove'
   | 'calendar.add'
-  | 'calendar.show'
+  | 'calendar.move'
+  | 'calendar.remove'
   | 'message.send'
+  | 'message.remove'
   | 'reminder.add'
   | 'note.add'
-  | 'photos.open'
-  | 'member.show'
+  | 'navigate'
+  | 'dictation'
   | 'unknown'
 
 /** Structured result of interpreting a transcript (before validation). */
@@ -248,10 +282,14 @@ export interface VoiceCommand {
     date?: ISODate
     startTime?: string
     points?: number
-    recurrence?: string
+    rule?: RecurrenceRule
+    /** A specific chore/event/message the user (or a clarification) pointed at. */
+    entityId?: ID
+    nav?: NavTarget
+    field?: DictationField
   }
   /** Set when the interpreter could not decide; drives the clarification UI. */
-  ambiguity?: { reason: string; options: { label: string; intent: VoiceIntent }[] }
+  ambiguity?: Clarification
 }
 
 export type ActionKind =
@@ -259,9 +297,16 @@ export type ActionKind =
   | 'grocery.remove'
   | 'chore.complete'
   | 'calendar.add'
+  | 'chore.assign'
+  | 'chore.remove'
+  | 'calendar.move'
+  | 'calendar.remove'
   | 'message.send'
+  | 'message.remove'
   | 'reminder.add'
   | 'note.add'
+  | 'navigate'
+  | 'dictation'
 
 export interface ProposedActionField {
   label: string
@@ -282,6 +327,8 @@ export interface ProposedAction {
   destructive: boolean
   /** Outgoing/external actions always show recipients + content first. */
   outgoing: boolean
+  /** Harmless, non-mutating actions (navigation) run without a review step. */
+  autoRun?: boolean
   payload: ActionPayload
 }
 
@@ -291,5 +338,12 @@ export type ActionPayload =
   | { kind: 'chore.complete'; choreId: ID; memberId: ID; occurrenceDate: ISODate }
   | { kind: 'calendar.add'; title: string; start: ISODateTime; end: ISODateTime; memberIds: ID[]; category: EventCategory }
   | { kind: 'message.send'; senderId: ID | 'family'; recipientIds: ID[] | 'everyone'; body: string }
+  | { kind: 'chore.assign'; title: string; detail?: string; icon: ChoreIcon; assigneeId: ID; points: number; dueDate: ISODate; recurrence?: RecurrenceRule }
+  | { kind: 'chore.remove'; choreId: ID }
+  | { kind: 'calendar.move'; eventId: ID; start: ISODateTime; end: ISODateTime }
+  | { kind: 'calendar.remove'; eventId: ID }
+  | { kind: 'message.remove'; itemId: ID; itemType: 'message' | 'reminder' }
+  | { kind: 'navigate'; target: NavTarget }
+  | { kind: 'dictation'; field: DictationField; text: string }
   | { kind: 'note.add'; senderId: ID | 'family'; recipientIds: ID[] | 'everyone'; body: string }
   | { kind: 'reminder.add'; text: string; targetId?: ID; createdBy: ID | 'family'; dueAt: ISODateTime }
