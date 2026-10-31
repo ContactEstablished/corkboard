@@ -1,0 +1,633 @@
+# Family Hub — Development Master Prompt
+
+## 1. Project objective
+
+You are a senior frontend engineer, UX architect, and interactive UI designer. Build a polished, touch-first, voice-first family dashboard application named **Family Hub**.
+
+The application will run full-screen on a wall-mounted, approximately 12-inch Android tablet with a 2K-class display, positioned near the front door of a family home.
+
+It serves as a central information and communication hub for five family members, providing:
+
+- Shared calendars with Day, Week, and Month views
+- Color-coded family events and appointments
+- Current time, date, local weather, and forecast
+- Grocery shopping lists
+- Chores, assignments, points, and achievement tracking
+- Family messages, announcements, notes, and reminders
+- Individual family-member dashboards
+- Personal photo collections
+- Context-aware voice interaction throughout the application
+
+The screenshots supplied with this prompt are the approved visual direction. Preserve their futuristic HUD appearance, screen organization, dark background, cyan luminous outlines, and refined presentation.
+
+**The initial goal is a fully navigable, visually polished frontend with functional mock data and realistic interaction flows. Do not build the production backend yet.**
+
+## 2. Technology stack
+
+Use the following technologies:
+
+- Vue 3 with Composition API
+- TypeScript with strict type checking
+- Vite
+- Pinia for state management
+- Vue Router
+- Vuetify 3 where helpful for accessibility and interaction primitives
+- Custom CSS/SCSS for the HUD styling and design system
+- Lucide icons or comparable SVG icons
+- Vitest for unit testing
+- Playwright for end-to-end testing
+
+Prefer custom-designed components over stock Vuetify styling. The result should not resemble a standard enterprise material-design dashboard.
+
+Create reusable components, typed models, and interfaces for all external services.
+
+Use realistic local mock data, with enough sample events and tasks to demonstrate the full interface.
+
+## 3. Visual design — futuristic HUD theme
+
+This is the first of potentially multiple interchangeable visual themes.
+
+The initial theme should be named `CyberHUD`.
+
+### Color palette
+
+Use the following approximate design tokens:
+
+| Token | Value |
+|---|---|
+| Main background | #03111F |
+| Panel background | #061B2D |
+| Elevated surface | #0A253A |
+| Primary neon cyan | #00D9FF |
+| Electric blue | #238BFF |
+| Muted border | #14617D |
+| Main text | #EAF8FF |
+| Secondary text | #91B5CC |
+
+Family members should each have a distinct accent color, but avoid large blocks of bright, flat colors.
+
+Use dark translucent event backgrounds, subtle colored outlines, and restrained luminous accents.
+
+Suggested family accents:
+
+- Dad: Electric blue
+- Jaime: Tech magenta
+- Liam: Aqua/teal
+- Ethan: Muted amber
+- Lumen: Ultraviolet
+
+Colors must be distinguishable through labels and avatars as well, not color alone.
+
+### Visual treatment
+
+- Deep navy and near-black backgrounds
+- Very subtle technical grid textures
+- Thin cyan border lines
+- Occasional angular or chamfered panel corners
+- Soft edge illumination
+- HUD-inspired dividers and corner details
+- Restrained animated lighting
+- Bright white or pale cyan for primary text
+- Clear visual hierarchy and generous spacing
+
+Use futuristic typography for major headings where appropriate, but highly readable sans-serif typography for schedules, descriptions, and controls.
+
+Avoid decorating every panel equally. Primary interactive elements should attract attention; secondary information should remain quiet.
+
+### Design principle
+
+**The interface must feel futuristic without sacrificing usability.**
+
+This device will often be viewed from several feet away, so readability takes priority over visual density.
+
+## 4. Display and layout requirements
+
+Target a landscape-oriented Android tablet, approximately 12 inches diagonal, with a 2K-class display.
+
+Do not assume a fixed 16:9 aspect ratio; support common landscape tablet aspect ratios, including 16:10.
+
+Use responsive CSS dimensions rather than hardcoding physical display pixels.
+
+General requirements:
+
+- Large, touch-friendly controls, generally at least 48–56 CSS pixels
+- Comfortable spacing between touch targets
+- Large clock and clear calendar labels
+- Readable default text sizes
+- No horizontal scrolling on the primary dashboard
+- No accidental overlaps or content clipping
+- Full-screen/kiosk-friendly layout
+- No reliance on mouse hover
+- Reduced-motion support
+
+Most routine actions should require only one or two touches before the user can speak.
+
+## 5. Main application shell
+
+Build a consistent application shell shared by all screens.
+
+### Header
+
+Display:
+
+- Family Hub branding
+- Current time and date
+- Compact current weather
+- Family-member avatars
+- Day / Week / Month calendar tabs, where applicable
+- Settings control
+- Persistent global microphone button
+
+Clicking a family-member avatar switches to that person's filtered experience.
+
+Provide an obvious **Family / Everyone** action to restore the household view.
+
+### Navigation
+
+Include the following primary sections:
+
+- Home
+- Calendar
+- Tasks / Chores
+- Groceries
+- Messages / Notes
+- Photos
+
+Expanded sections should open in large, near-full-screen modals when appropriate.
+
+Replace the old "View All" wording with a compact, recognizable **Open / Expand** icon or chevron.
+
+Keep navigation behavior consistent across all screens.
+
+## 6. Global microphone system
+
+This is a critical feature.
+
+**The interface will not have a keyboard. All text entry initiated from the tablet UI must happen through voice.**
+
+Touch interaction remains available for navigation, selecting items, marking chores complete, viewing details, confirming actions, and choosing options.
+
+### Microphone button design
+
+Replace every "Add with voice" textbox with a simple, circular microphone button.
+
+The button must visually match the provided microphone reference:
+
+- Circular dark-blue center
+- White or pale-cyan microphone icon
+- Bright electric-cyan outer border
+- Strong but controlled cyan glow
+- Additional faint outer halo
+- Approximately 64–72 CSS pixels for primary microphone controls, adjusted for display scale
+- Clear pressed and focused states
+
+Idle appearance should be luminous but not continually distracting.
+
+When listening, display an animated circular pulse, waveform, or expanding halo.
+
+When processing, show a distinct rotating or animated indicator.
+
+Other states include ready, permission required, confirmation, success, and error.
+
+### Microphone availability
+
+A microphone must be accessible on virtually every screen.
+
+Implement two related controls:
+
+**Global microphone:** A persistent button in a predictable position within the application shell. Its context is derived from the current route and selected family member.
+
+**Local microphone:** A circular button available inside expanded Grocery, Chores, Calendar, Messages, and other editing views. It inherits the more specific context of that view.
+
+Both controls must open the same reusable Voice Interaction Modal.
+
+Do not duplicate the voice-recognition implementation across individual screens.
+
+## 7. Context-aware voice recognition
+
+The microphone must know where the user was when it was activated.
+
+Create a typed `VoiceInteractionContext` that can contain:
+
+- Current route or feature
+- Calendar view (Day, Week, Month)
+- Selected calendar date or time interval
+- Currently selected family member
+- Active modal
+- Selected item or entity ID
+- Requested operation, when already known
+- Originating UI control
+
+Use the most specific active context.
+
+For example, activating the microphone inside the Grocery modal should default to grocery-related operations.
+
+Activating it while viewing Liam's chores should understand Liam as the default assignee or filter, unless the user specifies otherwise.
+
+Do not automatically perform an ambiguous action. Ask for clarification when necessary.
+
+### Example voice commands
+
+| Context | Example command |
+|---|---|
+| Groceries | "Add milk, eggs, bananas, and chicken to the shopping list." |
+| Groceries | "Remove bananas from the list." |
+| Chores | "Assign Liam to take out the trash every Wednesday for twenty points." |
+| Chores | "Mark Ethan's dishes as complete." |
+| Calendar | "Add a dentist appointment for Jaime next Tuesday at two." |
+| Calendar | "Show me next week." |
+| Messages | "Send everyone a message that dinner is at six tonight." |
+| Reminders | "Remind Liam to bring his soccer cleats tomorrow." |
+| Member view | "Show me Lumen's activities this weekend." |
+| Photos | "Open Liam's soccer photos." |
+
+Treat these as examples, not an exhaustive command vocabulary.
+
+## 8. Reusable voice interaction modal
+
+Whenever the microphone is activated, open a centered, highly visible modal consistent with the provided reference.
+
+The modal should contain:
+
+1. A contextual title, such as "Add to Groceries" or "New Family Message"
+2. A large, glowing circular microphone
+3. Current recognition status
+4. Live transcript text while speech is recognized
+5. A structured preview of the interpreted action
+6. Large touch controls for Confirm, Cancel, Retry, or Stop
+7. A close button
+
+The background dashboard should dim and blur slightly so the modal receives clear visual focus.
+
+The modal should be large enough for readable text but should not obscure the entire screen unnecessarily.
+
+### Voice state machine
+
+Implement the following states:
+
+- Closed
+- Requesting permission
+- Listening
+- Processing
+- Reviewing result
+- Executing
+- Success
+- Error
+
+For a grocery request such as "Add bananas, eggs, and chicken to the grocery list," show the recognized items before committing:
+
+**Ready to add**
+
+- Bananas
+- Eggs
+- Chicken
+
+Provide **Add 3 Items**, **Retry**, and **Cancel** actions.
+
+For destructive operations, require explicit confirmation.
+
+For outgoing messages, show the recipients and message content before sending.
+
+Do not automatically execute destructive or external-facing actions based solely on recognition output.
+
+### Speech architecture
+
+Create interchangeable interfaces for:
+
+- Speech capture
+- Speech-to-text recognition
+- Natural-language intent interpretation
+- Action validation
+- Command execution
+- Optional speech feedback
+
+The initial implementation may use a feature-detected browser speech recognition adapter where supported.
+
+Do not assume the Android browser, microphone permissions, speech recognition service, or network connectivity will always be available.
+
+Provide a mock speech adapter for testing and development. The mock adapter may use predefined command scenarios or a development-only command simulator, but do not expose a keyboard-based text field in the production tablet interface.
+
+A native Android bridge or external speech service may be integrated later.
+
+Do not implement a production LLM or speech backend without explicit integration details.
+
+## 9. Calendar system
+
+Implement Day, Week, and Month views using a shared event data model.
+
+### Day view
+
+Display an easy-to-scan agenda with event times, labels, family colors, and responsible family members.
+
+### Week view
+
+Display seven days with color-coded event blocks.
+
+Support navigation between weeks and selecting a specific date.
+
+### Month view
+
+Display the full month with compact event indicators.
+
+Selecting a date should reveal its associated events.
+
+Support basic recurring event data.
+
+Calendar entries must support add, edit, and delete operations through the modal and voice interaction system.
+
+Preserve the selected family-member filter when switching between calendar views.
+
+## 10. Grocery list
+
+Provide both a compact dashboard preview and expanded grocery management modal.
+
+Support:
+
+- Adding multiple items through one voice request
+- Marking items purchased
+- Editing item details through voice
+- Removing items with confirmation where appropriate
+- Categories such as Produce, Dairy, Meat, Pantry, Frozen, and Household
+- Quantity and optional unit
+- Suggested or frequently purchased items
+- Clear touch controls
+
+Use readable list rows, subtle separators, and small category icons.
+
+No text-entry boxes should appear.
+
+## 11. Chores and gamification
+
+Chores must be more engaging than an ordinary checklist.
+
+Each chore may have:
+
+- Assigned family member
+- Point value
+- Due date
+- Recurrence rule
+- Completion status
+- Optional category
+- Completion history
+
+Completing a chore should update earned points, completion progress, and appropriate weekly statistics.
+
+Maintain the compact **This Week** visualization on the dashboard.
+
+Do not reintroduce the large horizontal family scoreboard that was previously removed.
+
+### Gamification
+
+Support the concept of:
+
+- Total points
+- Weekly earned points
+- Levels
+- Streaks
+- Badges
+- Family-wide goals
+- Personal progress rings
+
+Show detailed achievements within individual family profiles or the expanded Chores section, not as a large permanent dashboard element.
+
+Calculate point awards from completion records to prevent duplicate scoring.
+
+## 12. Messages, notes, and reminders
+
+Create a unified communication area.
+
+Support three primary content types:
+
+- Family messages and announcements
+- Personal or shared notes
+- Timed reminders
+
+Show sender avatars, timestamps, short previews, and recipient information where applicable.
+
+Use the same contextual voice modal for creating, editing, and deleting entries.
+
+Show message previews without exposing unnecessarily sensitive content on the front-door home screen.
+
+Support selecting a recipient or addressing the entire family.
+
+Confirm recipient selection and text before sending.
+
+## 13. Individual family-member experience
+
+Tapping a family-member avatar must switch the application into a filtered user mode.
+
+For example, clicking Liam should show:
+
+- Liam's calendar events
+- Liam's chores
+- Liam's weekly points and progress
+- Liam's assigned reminders
+- Relevant messages
+- A small personal photo collection
+
+Keep the overall visual language consistent with the family dashboard.
+
+Prominently identify the selected user and provide an easy way to return to Family mode.
+
+The selected user should remain active while navigating between sections until the user switches or clears the filter.
+
+## 14. Photos
+
+Support a small photo preview in individual member dashboards.
+
+Allow a gallery modal with:
+
+- Grid and slideshow views
+- Personal photo collections
+- Category filters
+- Favorites
+- Photo captions
+- Next/previous navigation
+
+For the frontend prototype, use local or appropriately licensed placeholder photos.
+
+Voice may be used for navigating albums, selecting categories, or dictating captions.
+
+Actual photo selection or importing can be handled through touch interaction or later backend integration.
+
+Avoid filling the main dashboard with a large photo gallery.
+
+## 15. Data architecture
+
+Define typed domain models for:
+
+- FamilyMember
+- CalendarEvent
+- ShoppingItem
+- Chore
+- ChoreCompletion
+- Message
+- Reminder
+- Photo
+- Achievement
+- VoiceInteractionContext
+- VoiceCommand
+- ProposedAction
+
+Define repository and service interfaces so frontend features are not directly coupled to any future API.
+
+Use a mock repository backed by local demo data and optional browser-local persistence for development.
+
+Keep separate abstractions for:
+
+- Family data
+- Calendar operations
+- Grocery operations
+- Chores and scoring
+- Messages
+- Photo metadata
+- Weather
+- Speech recognition
+- Intent interpretation
+
+The eventual backend may expose REST or GraphQL. Do not make the frontend dependent on either yet.
+
+## 16. Interaction, failure, and accessibility requirements
+
+The interface must handle:
+
+- Microphone permission denied
+- Unsupported speech capture
+- Recognition timeout
+- No speech detected
+- Ambiguous commands
+- Failed action execution
+- Repeated commands
+- Accidental double taps
+- Network unavailability
+- Empty lists and empty calendars
+- Long item names
+- Missing profile photos
+- Invalid or conflicting dates
+
+The application must not claim to have saved an action until it has succeeded.
+
+Provide understandable visual feedback and retry options.
+
+Use accessible touch controls, meaningful labels, sufficient contrast, and reduced-motion preferences.
+
+Do not persist raw microphone audio by default.
+
+Because this is a family kiosk, design the data model to allow later implementation of parental permissions, personal privacy, and administrative restrictions.
+
+## 17. Suggested component organization
+
+Create a clear frontend architecture such as:
+
+- `app/` — application shell, router, initialization
+- `components/hud/` — reusable futuristic UI primitives
+- `components/voice/` — microphone button, voice modal, transcript display, action preview
+- `components/calendar/` — calendar layouts and event components
+- `features/groceries/`
+- `features/chores/`
+- `features/messages/`
+- `features/family/`
+- `features/photos/`
+- `features/weather/`
+- `stores/` — Pinia stores
+- `services/` — service interfaces, mocks, adapters
+- `models/` — shared TypeScript domain types
+- `themes/` — theme tokens and CSS variables
+- `data/` — seed data for demonstrations
+- `tests/`
+
+Build the CyberHUD theme as a theme-token system, not hardcoded styles scattered through components.
+
+This will allow future themes to change the appearance without rewriting the application.
+
+## 18. Development phases
+
+### Phase 1 — Foundation and visual shell
+
+- Initialize the Vue 3 + TypeScript project
+- Create the CyberHUD design tokens
+- Build the responsive application shell
+- Implement header, navigation, weather display, and avatars
+- Create reusable HUD panels, buttons, icons, and modal components
+- Implement the glowing microphone component and its visual states
+- Populate the home screen with realistic mock data
+
+### Phase 2 — Dashboard and feature screens
+
+- Implement Day, Week, and Month calendar views
+- Implement expanded Grocery modal
+- Implement Chores modal and points
+- Implement Messages and Reminders modal
+- Implement individual family-member filtering
+- Implement personal photo galleries
+
+### Phase 3 — Voice interaction
+
+- Build the centralized voice modal
+- Create the voice context resolver
+- Implement speech provider interfaces
+- Implement mock command interpretation
+- Create structured action previews
+- Connect voice commands to local mock repositories
+- Implement confirmation and error flows
+
+### Phase 4 — Polish and interaction testing
+
+- Refine animation and HUD effects
+- Improve readability for 12-inch displays
+- Test all navigation and filtering
+- Test voice context preservation
+- Test completion-point calculation
+- Test editing and deletion flows
+- Test microphone permissions and failure states
+- Validate layout on actual Android hardware
+- Add Vitest and Playwright coverage
+
+### Phase 5 — Backend integration readiness
+
+- Document integration contracts
+- Remove direct dependencies on mock implementations
+- Prepare adapter configuration
+- Document external data and microphone requirements
+- Identify Android kiosk deployment requirements
+
+Do not implement production backend services in this phase.
+
+## 19. Acceptance criteria
+
+The frontend prototype is successful when:
+
+1. All major screens are navigable through touch.
+2. Day, Week, and Month calendar views work.
+3. Five family members have consistent identity colors and filters.
+4. Grocery, Chores, and Messages support functional mock add/edit/delete workflows.
+5. The global and local microphones open the same contextual voice modal.
+6. No production screen requires keyboard input to enter text.
+7. Voice commands produce a reviewable action before relevant changes are committed.
+8. Completed chores update points and progress correctly.
+9. Individual family profiles display filtered information and photos.
+10. The application looks coherent, polished, and readable on a landscape 12-inch Android tablet.
+11. The frontend functions using mock data without requiring a production backend.
+
+## 20. Instructions for the coding agent
+
+Begin by examining the reference images and translating them into reusable components and a consistent theme system.
+
+Create and maintain the following project documents:
+
+- `ARCHITECTURE.md` — components, domain models, providers, and state architecture
+- `ROADMAP.md` — implementation phases and milestones
+- `TASKS.md` — actionable tasks with status
+- `README.md` — setup, development, testing, and Android deployment notes
+
+**Implement Phase 1 first, rather than attempting every phase simultaneously.**
+
+For Phase 1, deliver a working project that launches locally and displays a realistic Family Hub home screen with a functional visual navigation shell and interactive microphone modal prototype.
+
+Avoid placeholder-quality visual design. Match the supplied references as closely as practical while improving readability, consistency, and component reuse.
+
+Use functional mock data and actual component state rather than static screenshot replicas.
+
+Keep service interfaces separated from implementation so I can introduce my own backend later.
+
+At the completion of Phase 1, document what is implemented, what remains mocked, and the recommended next tasks. Do not proceed into production backend development.
