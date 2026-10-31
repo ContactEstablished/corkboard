@@ -1,0 +1,6 @@
+// Auto-injected into every component's SCSS (see vite.config.ts).
+
+// Soft fade at the bottom of a scrolling list so cut-off rows read as "more below".
+@mixin fade-bottom {
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 1.6rem), transparent);
+}
