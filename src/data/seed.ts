@@ -137,6 +137,7 @@ function seedChores(now: Date): Chore[] {
     chore({ id: 'c-bath', title: 'Clean bathroom', detail: 'Upstairs', icon: 'bath', assigneeId: ethan, points: 25, recurrence: twiceWeekly }),
     chore({ id: 'c-vac', title: 'Vacuum upstairs', detail: 'This week', icon: 'vacuum', assigneeId: dad, points: 25, recurrence: twiceWeekly }),
     chore({ id: 'c-plants', title: 'Water the plants', detail: 'Living room', icon: 'plants', assigneeId: jaime, points: 15, recurrence: onceWeekly((dow + 1) % 7) }),
+    chore({ id: 'c-dishes-e', title: 'Wash the dishes', detail: 'After dinner', icon: 'dishes', assigneeId: ethan, points: 10, recurrence: daily }),
     chore({ id: 'c-dishes', title: 'Load the dishwasher', detail: 'After dinner', icon: 'dishes', assigneeId: liam, points: 10, recurrence: daily }),
   ]
 }

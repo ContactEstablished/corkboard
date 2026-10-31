@@ -58,6 +58,38 @@ export class RepositoryCommandExecutor implements CommandExecutor {
           await this.repos.messages.sendMessage({ kind: 'note', senderId: p.senderId, recipientIds: p.recipientIds, body: p.body })
           return { ok: true, kind: p.kind, message: 'Note saved.' }
         }
+        case 'chore.assign': {
+          const created = await this.repos.chores.createChore({
+            title: p.title,
+            icon: p.icon,
+            assigneeId: p.assigneeId,
+            points: p.points,
+            dueDate: p.dueDate,
+            recurrence: p.recurrence,
+          })
+          return { ok: true, kind: p.kind, message: `Assigned “${created.title}” (${p.points} points).` }
+        }
+        case 'chore.remove': {
+          await this.repos.chores.deleteChore(p.choreId)
+          return { ok: true, kind: p.kind, message: 'Chore deleted.' }
+        }
+        case 'calendar.move': {
+          await this.repos.calendar.updateEvent(p.eventId, { start: p.start, end: p.end })
+          return { ok: true, kind: p.kind, message: 'Event moved.' }
+        }
+        case 'calendar.remove': {
+          await this.repos.calendar.deleteEvent(p.eventId)
+          return { ok: true, kind: p.kind, message: 'Event cancelled.' }
+        }
+        case 'message.remove': {
+          if (p.itemType === 'reminder') await this.repos.messages.deleteReminder(p.itemId)
+          else await this.repos.messages.deleteMessage(p.itemId)
+          return { ok: true, kind: p.kind, message: 'Deleted.' }
+        }
+        case 'navigate':
+        case 'dictation':
+          // Handled by the voice store (they change the UI, not data).
+          return { ok: true, kind: p.kind, message: '' }
         case 'reminder.add': {
           await this.repos.messages.createReminder({ text: p.text, targetId: p.targetId, createdBy: p.createdBy, dueAt: p.dueAt })
           return { ok: true, kind: p.kind, message: 'Reminder set.' }
