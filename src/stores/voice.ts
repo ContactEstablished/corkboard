@@ -1,16 +1,18 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import type { ProposedAction, VoiceCommand, VoiceInteractionContext } from '@/models'
+import type { Clarification, ProposedAction, VoiceCommand, VoiceInteractionContext } from '@/models'
 import { getServices } from '@/services/container'
 import { type MicPermissionState, type SpeechErrorCode, isScriptable } from '@/services/interfaces'
 import { refreshAfterAction } from './bootstrap'
 import { useFamilyStore } from './family'
+import { usePreferencesStore } from './preferences'
 
 export type VoiceState =
   | 'closed'
   | 'requesting-permission'
   | 'listening'
   | 'processing'
+  | 'clarifying'
   | 'reviewing'
   | 'executing'
   | 'success'
@@ -21,7 +23,8 @@ export const VOICE_TRANSITIONS: Record<VoiceState, readonly VoiceState[]> = {
   'closed': ['requesting-permission'],
   'requesting-permission': ['listening', 'error', 'closed'],
   'listening': ['processing', 'error', 'closed', 'requesting-permission'],
-  'processing': ['reviewing', 'error', 'closed'],
+  'processing': ['reviewing', 'clarifying', 'error', 'closed'],
+  'clarifying': ['processing', 'requesting-permission', 'closed'],
   'reviewing': ['executing', 'requesting-permission', 'closed'],
   'executing': ['success', 'error'], // a commit in flight can't be cancelled
   'success': ['closed'],
@@ -51,8 +54,15 @@ const ERROR_COPY: Record<SpeechErrorCode, Omit<VoiceError, 'code' | 'retry'>> = 
 
 export const LISTEN_TIMEOUT_MS = 15_000
 export const SUCCESS_AUTOCLOSE_MS = 1_800
+/** Navigation and dictation have nothing to read afterwards, so they close sooner. */
+export const QUICK_CLOSE_MS = 700
 
 export type MicVisualState = 'idle' | 'ready' | 'listening' | 'processing' | 'permission' | 'confirm' | 'success' | 'error'
+
+export interface VoiceOpenOptions {
+  /** Receives the confirmed text when the mic was opened to dictate into a form field. */
+  onDictation?: (text: string) => void
+}
 
 export const useVoiceStore = defineStore('voice', () => {
   const state = ref<VoiceState>('closed')
@@ -61,12 +71,14 @@ export const useVoiceStore = defineStore('voice', () => {
   const transcript = ref('')
   const command = ref<VoiceCommand | null>(null)
   const proposal = ref<ProposedAction | null>(null)
+  const clarification = ref<Clarification | null>(null)
   const error = ref<VoiceError | null>(null)
   const resultMessage = ref('')
 
   let session = 0
   let listenTimer: ReturnType<typeof setTimeout> | undefined
   let closeTimer: ReturnType<typeof setTimeout> | undefined
+  let dictationSink: ((text: string) => void) | undefined
 
   const isOpen = computed(() => state.value !== 'closed')
 
@@ -77,6 +89,7 @@ export const useVoiceStore = defineStore('voice', () => {
       case 'listening': return 'listening'
       case 'processing':
       case 'executing': return 'processing'
+      case 'clarifying':
       case 'reviewing': return 'confirm'
       case 'success': return 'success'
       case 'error': return error.value?.code === 'permission-denied' ? 'permission' : 'error'
@@ -95,6 +108,11 @@ export const useVoiceStore = defineStore('voice', () => {
     listenTimer = closeTimer = undefined
   }
 
+  /** Spoken replies are opt-in (Speak replies in the voice window). */
+  function say(text: string) {
+    if (text && usePreferencesStore().speakReplies) getServices().feedback.speak(text)
+  }
+
   function fail(code: VoiceErrorCode, retry: VoiceError['retry'] = 'listen', message?: string) {
     clearTimers()
     const copy: Omit<VoiceError, 'code' | 'retry'> =
@@ -103,17 +121,19 @@ export const useVoiceStore = defineStore('voice', () => {
         : code === 'execution-failed'
           ? { title: "Couldn't save that", message: 'Nothing was changed.', retryable: true }
           : code === 'unclear'
-            ? { title: "Let's clarify", message: "I'm not sure about that yet.", retryable: true }
+            ? { title: "I'm not sure", message: "I'm not sure about that yet.", retryable: true }
             : { title: "I can't do that", message: 'Try saying it a different way.', retryable: true }
     error.value = { code, retry, ...copy, message: message ?? copy.message }
     go('error')
+    say(error.value.message)
   }
 
   /** Opens the modal for `ctx` and starts listening. Ignored if already open. */
-  async function open(ctx: VoiceInteractionContext): Promise<void> {
+  async function open(ctx: VoiceInteractionContext, options: VoiceOpenOptions = {}): Promise<void> {
     if (state.value !== 'closed') return
     reset()
     context.value = ctx
+    dictationSink = options.onDictation
     go('requesting-permission')
     await begin()
   }
@@ -123,6 +143,7 @@ export const useVoiceStore = defineStore('voice', () => {
     const mine = ++session
     interim.value = transcript.value = ''
     proposal.value = null
+    clarification.value = null
     command.value = null
     error.value = null
 
@@ -163,17 +184,30 @@ export const useVoiceStore = defineStore('voice', () => {
     interim.value = text
     transcript.value = text
     const svc = getServices()
-    const ctx = context.value!
     try {
-      const members = useFamilyStore().members
-      const cmd = await svc.interpreter.interpret(text, ctx, members, svc.now())
+      const cmd = await svc.interpreter.interpret(text, context.value!, useFamilyStore().members, svc.now())
       if (mine !== session) return
-      command.value = cmd
-      const result = await svc.validator.validate(cmd, ctx, members)
+      await resolve(cmd, mine)
+    } catch {
+      if (mine === session) fail('unknown')
+    }
+  }
+
+  /** Validate a command: it becomes a reviewable action, a question for the user, or an explained failure. */
+  async function resolve(cmd: VoiceCommand, mine: number): Promise<void> {
+    const svc = getServices()
+    command.value = cmd
+    try {
+      const result = await svc.validator.validate(cmd, context.value!, useFamilyStore().members)
       if (mine !== session) return
       if (result.ok) {
         proposal.value = result.action
-        go('reviewing')
+        clarification.value = null
+        if (!go('reviewing')) return
+        if (result.action.autoRun) await confirm() // harmless navigation: no review step
+      } else if (result.reason === 'clarify') {
+        clarification.value = result.clarification
+        if (go('clarifying')) say(result.clarification.question)
       } else {
         fail(result.reason, 'listen', result.message)
       }
@@ -182,25 +216,67 @@ export const useVoiceStore = defineStore('voice', () => {
     }
   }
 
+  /** The user tapped one of the options of a clarifying question. */
+  function answerClarification(index: number) {
+    const c = clarification.value
+    const cmd = command.value
+    const option = c?.options[index]
+    if (!c || !cmd || !option || state.value !== 'clarifying' || !go('processing')) return
+    clarification.value = null
+    const next: VoiceCommand = {
+      ...cmd,
+      intent: option.patch.intent ?? cmd.intent,
+      entities: { ...cmd.entities, ...option.patch.entities },
+      ambiguity: undefined,
+    }
+    void resolve(next, session)
+  }
+
   /** User tapped "Stop": finish with what was heard so far. */
   function stopListening() {
     if (state.value === 'listening') getServices().recognizer.stop()
   }
 
-  /** Commit the reviewed action. Only reports success after the executor resolves. */
+  /**
+   * Commit the reviewed action. Only reports success after the work actually
+   * succeeded. Navigation and dictation change the UI, not data, so they are
+   * handled here rather than by the data executor.
+   */
   async function confirm(): Promise<void> {
     const action = proposal.value
     if (!action || state.value !== 'reviewing' || !go('executing')) return
     const mine = session
-    const result = await getServices().executor.execute(action)
-    if (mine !== session) return
-    if (!result.ok) return fail('execution-failed', 'execute', result.message)
-    resultMessage.value = result.message
+    const svc = getServices()
+    const p = action.payload
+    let quick = false
+
+    if (p.kind === 'dictation') {
+      dictationSink?.(p.text)
+      dictationSink = undefined
+      resultMessage.value = 'Got it.'
+      quick = true
+    } else if (p.kind === 'navigate') {
+      try {
+        await svc.navigation.go(p.target)
+      } catch {
+        if (mine === session) fail('execution-failed', 'execute', "Couldn't open that screen.")
+        return
+      }
+      if (mine !== session) return
+      resultMessage.value = `Opening ${p.target.label}`
+      quick = true
+    } else {
+      const result = await svc.executor.execute(action)
+      if (mine !== session) return
+      if (!result.ok) return fail('execution-failed', 'execute', result.message)
+      resultMessage.value = result.message
+    }
+
     go('success')
-    getServices().feedback.speak(result.message)
-    await refreshAfterAction()
+    say(resultMessage.value)
+    if (!quick) await refreshAfterAction()
     if (mine !== session) return // closed (or reopened) while refreshing
-    closeTimer = setTimeout(close, SUCCESS_AUTOCLOSE_MS)
+    closeTimer = setTimeout(close, quick ? QUICK_CLOSE_MS : SUCCESS_AUTOCLOSE_MS)
   }
 
   /** Touch edit of a message's recipients during review (Everyone, or specific members). */
@@ -245,6 +321,7 @@ export const useVoiceStore = defineStore('voice', () => {
     clearTimers()
     getServices().recognizer.abort()
     getServices().feedback.cancel()
+    dictationSink = undefined
     state.value = 'closed'
     reset()
   }
@@ -254,12 +331,13 @@ export const useVoiceStore = defineStore('voice', () => {
     interim.value = transcript.value = resultMessage.value = ''
     command.value = null
     proposal.value = null
+    clarification.value = null
     error.value = null
   }
 
   return {
-    state, context, interim, transcript, command, proposal, error, resultMessage,
+    state, context, interim, transcript, command, proposal, clarification, error, resultMessage,
     isOpen, micVisual,
-    open, close, confirm, retry, stopListening, devScenario, setRecipients,
+    open, close, confirm, retry, stopListening, devScenario, setRecipients, answerClarification,
   }
 })

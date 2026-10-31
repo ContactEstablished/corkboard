@@ -8,9 +8,10 @@ import { createApp } from 'vue'
 import { createVuetify } from 'vuetify'
 import { VApp } from 'vuetify/components/VApp'
 import App from './app/App.vue'
+import { createAppNavigator } from './app/navigator'
 import { router } from './app/router'
 import { loadAllStores } from './stores/bootstrap'
-import { type SpeechProvider, createMockServices, setServices } from './services/container'
+import { type SpeechProvider, createMockServices, getServices, setServices } from './services/container'
 import { localStoragePersistence } from './services/mock/persistence'
 import { DEFAULT_THEME_ID, applyTheme, themes } from './themes'
 import { toISODate } from './utils/date'
@@ -31,6 +32,9 @@ setServices(
     persistence: persist ? localStoragePersistence(`familyhub.v1.${toISODate(new Date())}`) : undefined,
   }),
 )
+
+// Voice "show me…" commands drive the router through this adapter.
+getServices().navigation = createAppNavigator(router)
 
 const vuetify = createVuetify({
   components: { VApp },

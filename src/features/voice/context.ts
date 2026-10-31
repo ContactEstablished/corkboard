@@ -54,7 +54,10 @@ export function featureLabel(feature: AppFeature): string {
 }
 
 /** Contextual modal title, e.g. "Add to Groceries". */
+const FIELD_TITLES = { 'event.title': 'Name this event', 'chore.title': 'Name this chore', 'photo.caption': 'Add a caption' } as const
+
 export function voiceTitle(ctx: VoiceInteractionContext): string {
+  if (ctx.field) return FIELD_TITLES[ctx.field]
   switch (ctx.feature) {
     case 'groceries':
       return 'Add to Groceries'
@@ -74,16 +77,20 @@ export function voiceTitle(ctx: VoiceInteractionContext): string {
 /** Hint line under the title: what is understood by default here. */
 export function voiceHint(ctx: VoiceInteractionContext, memberName?: string): string {
   const who = memberName ? ` for ${memberName}` : ''
+  if (ctx.field) return 'Just say it, for example “Soccer tournament”'
+  if (ctx.entityId && ctx.feature === 'calendar') return 'Try “Move it to 5 PM” or “Cancel it”'
   switch (ctx.feature) {
     case 'groceries':
       return 'Try “Add milk, eggs, and bananas”'
     case 'calendar':
-      return `Try “Add soccer practice tomorrow at 4${who}”`
+      return `Try “Add soccer practice tomorrow at 4${who}” or “Show me next week”`
     case 'chores':
-      return memberName ? `Chores${who} · try “Mark the trash as complete”` : 'Try “Mark Lumen’s set the table as complete”'
+      return memberName ? `Chores${who} · try “Mark the trash as complete”` : 'Try “Assign Liam to take out the trash every Wednesday for twenty points”'
     case 'messages':
       return 'Try “Send everyone a message that dinner is at six”'
+    case 'photos':
+      return 'Try “Open Liam’s soccer photos”'
     default:
-      return 'Say what you need: groceries, events, chores, messages'
+      return 'Say what you need: groceries, events, chores, messages, or “Show me next week”'
   }
 }

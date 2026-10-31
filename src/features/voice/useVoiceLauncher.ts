@@ -3,7 +3,7 @@ import type { AppFeature, VoiceOrigin } from '@/models'
 import { useCalendarStore } from '@/stores/calendar'
 import { useClockStore } from '@/stores/clock'
 import { useFamilyStore } from '@/stores/family'
-import { useVoiceStore } from '@/stores/voice'
+import { type VoiceOpenOptions, useVoiceStore } from '@/stores/voice'
 import { toISODate } from '@/utils/date'
 import { type ContextOverride, resolveVoiceContext } from './context'
 
@@ -19,7 +19,7 @@ export function useVoiceLauncher() {
   const clock = useClockStore()
   const voice = useVoiceStore()
 
-  function launch(override: ContextOverride = {}, origin: VoiceOrigin = 'global-mic') {
+  function launch(override: ContextOverride = {}, origin: VoiceOrigin = 'global-mic', options: VoiceOpenOptions = {}) {
     const feature = (route.meta.feature as AppFeature | undefined) ?? 'home'
     const ctx = resolveVoiceContext(
       {
@@ -32,7 +32,7 @@ export function useVoiceLauncher() {
       origin,
       override,
     )
-    return voice.open(ctx)
+    return voice.open(ctx, options)
   }
 
   return { launch }
