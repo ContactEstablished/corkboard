@@ -1,0 +1,10 @@
+bin/
+obj/
+*.user
+.vs/
+TestResults/
+
+# Runtime data (SQLite db, logs, backups) and downloaded STT models
+data/
+models/*
+!models/.gitkeep
