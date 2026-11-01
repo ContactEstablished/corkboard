@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+    <!-- Pulls in the native runtime for every RID; publish with -r linux-x64 to keep only that one. -->
+    <PackageReference Include="org.k2fsa.sherpa.onnx" />
+    <PackageReference Include="Telegram.BotAPI" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HomeKiosk.Core\HomeKiosk.Core.csproj" />
+  </ItemGroup>
+
+</Project>
